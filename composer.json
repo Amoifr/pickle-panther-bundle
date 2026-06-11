@@ -2,7 +2,7 @@
     "name": "amoifr/pickle-panther-bundle",
     "description": "YAML-driven E2E testing engine for Symfony on top of Panther: write browser scenarios in (FR/EN) near-natural language, mapped to PHP sentences, with an HTML report.",
     "type": "symfony-bundle",
-    "license": "proprietary",
+    "license": "MIT",
     "keywords": ["symfony", "panther", "e2e", "testing", "bdd", "yaml"],
     "authors": [
         {
