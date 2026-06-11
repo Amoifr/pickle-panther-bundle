@@ -245,6 +245,11 @@ status, timing, context badges (browser / identity) and screenshots. Run with
 **Pascal CESCON** ([@Amoifr](https://github.com/Amoifr)) ·
 [pascal.cescon@gmail.com](mailto:pascal.cescon@gmail.com)
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md). This project follows
+[Semantic Versioning](https://semver.org/).
+
 ## License
 
 Released under the [MIT License](LICENSE).
