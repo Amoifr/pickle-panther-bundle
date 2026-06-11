@@ -1,0 +1,36 @@
+scenarios:
+  - nom: "Navigation depuis l'accueil (FR)"
+    description: "Vérifie le titre, le contenu et la navigation vers la page 2."
+    contexte:
+      navigateur: desktop
+    etapes:
+      - action: "Visite la page avec l'[url]"
+        args:
+          url: /index.html
+      - action: "Attend que la page et ses scripts soient complètement chargés"
+      - action: "Vérifie que le titre de la page est [title]"
+        args:
+          title: Accueil Démo
+      - action: "Vérifie que le texte [text] est présent dans le sélecteur [selector]"
+        titre: "Le titre d'accueil est affiché"
+        args:
+          text: Bienvenue
+          selector: "#home-title"
+      - action: "Clique sur l'élément [selector] avec JavaScript"
+        args:
+          selector: "#go-page2"
+      - action: "Vérifie que l'URL contient [fragment]"
+        args:
+          fragment: page2
+
+  - nom: "Scénario authentifié (FR)"
+    description: "Vérifie que le contexte d'authentification est appliqué."
+    contexte:
+      identifié: admin
+    etapes:
+      - action: "Visite la page avec l'[url]"
+        args:
+          url: /index.html
+      - action: "Vérifie que le titre de la page est [title]"
+        args:
+          title: Accueil Démo

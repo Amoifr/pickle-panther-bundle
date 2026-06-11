@@ -1,0 +1,15 @@
+/vendor/
+/composer.lock
+/.phpunit.cache/
+/.phpunit.result.cache
+/phpunit.xml
+
+# Downloaded browser drivers (resolve locally, e.g. via dbrekelmans/bdi)
+/drivers/
+/.drivers/
+
+# Test application runtime artifacts
+/tests/Application/var/
+
+# IDE
+/.idea/

@@ -1,0 +1,17 @@
+scenarios:
+  - name: "Navigation from home (EN)"
+    description: "Verifies title, content and navigation to page 2."
+    context:
+      browser: desktop
+    steps:
+      - action: "Visit the page at [url]"
+        args:
+          url: /index.html
+      - action: "Wait for the page and its scripts to be fully loaded"
+      - action: "Verify that the page title is [title]"
+        args:
+          title: Accueil Démo
+      # Inline syntax: the value lives inside the brackets (no `args:` needed).
+      - action: "Click the element [#go-page2] with JavaScript"
+        title: "Navigate to page 2"
+      - action: "Verify that the URL contains [page2]"
