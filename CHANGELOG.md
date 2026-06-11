@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `pickle-panther:sentences` console command: documents every registered
+  sentence (Markdown) by introspecting the tagged providers — no hardcoded
+  list. Writes to stdout or a file (`--output`), optionally filtered by
+  `--locale`. Requires `symfony/console` (added to the bundle's requirements).
+
 ## [0.1.0] - 2026-06-11
 
 First public release — the YAML/Panther E2E engine extracted into a reusable

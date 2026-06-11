@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Amoifr\PicklePantherBundle\Auth\FormLoginAuthenticator;
+use Amoifr\PicklePantherBundle\Command\ListSentencesCommand;
 use Amoifr\PicklePantherBundle\Config\PicklePantherConfig;
 use Amoifr\PicklePantherBundle\DependencyInjection\Compiler\SentenceProviderPass;
 use Amoifr\PicklePantherBundle\Report\HtmlReporter;
@@ -46,4 +47,9 @@ return static function (ContainerConfigurator $container): void {
     // Generic form-login authenticator: defined here but only kept (and aliased
     // to AuthenticatorInterface) by the extension when `pickle_panther.auth` is set.
     $services->set(FormLoginAuthenticator::class)->public();
+
+    // Console command that documents the available sentences by introspecting
+    // the tagged providers. Autoconfigure tags it as a console command.
+    $services->set(ListSentencesCommand::class)
+        ->args([tagged_iterator(SentenceProviderPass::TAG)]);
 };
