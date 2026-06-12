@@ -173,6 +173,15 @@ form for those.
 for the exact sentence strings — each method is annotated with its FR and EN
 `#[Sentence]`.
 
+To list every available sentence (bundled **and** your own) without reading the
+code, run the console command — it introspects the registered providers:
+
+```bash
+# Markdown to stdout (optionally filtered by --locale and written with --output)
+bin/console pickle-panther:sentences
+bin/console pickle-panther:sentences --locale=en --output=docs/sentences.md
+```
+
 ### Adding your own sentences
 
 Create a provider; autoconfiguration registers it automatically:

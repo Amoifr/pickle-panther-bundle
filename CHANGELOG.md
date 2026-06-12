@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-12
+
 ### Added
 - `pickle-panther:sentences` console command: documents every registered
   sentence (Markdown) by introspecting the tagged providers — no hardcoded
   list. Writes to stdout or a file (`--output`), optionally filtered by
-  `--locale`. Requires `symfony/console` (added to the bundle's requirements).
+  `--locale`.
+
+### Changed
+- `symfony/console` is now a required dependency (needed by the new command).
 
 ## [0.1.0] - 2026-06-11
 
@@ -41,5 +46,6 @@ Symfony bundle.
   output, browser (headless, desktop/mobile viewports, Chrome args) and auth.
 - Demo test application with unit and functional (real browser) test suites.
 
-[Unreleased]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Amoifr/pickle-panther-bundle/releases/tag/v0.1.0
