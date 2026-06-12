@@ -32,6 +32,9 @@ final class HtmlReporterTest extends TestCase
             scenarioFile: 'demo_fr.yaml',
             scenarioName: 'Accueil',
         ));
+        // Test-level record (no scenario file, as added by BasePantherTest::tearDown):
+        // it must be ignored, not shown as a "Non spécifié" file.
+        $reporter->addStep(new StepResult(action: 'DemoTest::testSomething', success: true));
 
         $file = sys_get_temp_dir().'/pickle-panther-report-'.getmypid().'.html';
         $filePage = sys_get_temp_dir().'/pickle-panther-report-'.getmypid().'-1.html';
@@ -47,6 +50,9 @@ final class HtmlReporterTest extends TestCase
         self::assertStringContainsString('2 étape(s)', $index);
         self::assertStringContainsString('class="scenario-link"', $index);
         self::assertStringContainsString('href="'.basename($filePage).'"', $index);
+        // Only the 2 scenario steps are counted; the test-level record is ignored
+        // (no spurious "Non spécifié" file).
+        self::assertStringNotContainsString('Non spécifié', $index);
         // Step-level detail (argument values) is NOT on the home page.
         self::assertStringNotContainsString('/index.html', $index);
 

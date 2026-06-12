@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `HtmlReportExtension`) instead of in every test's `setUp`. Previously each test
   class wiped the previous classes' captures, so the final report only kept the
   last class's screenshots — most visible with `debug` enabled.
+- The report no longer shows a spurious "Non spécifié" entry: test-level records
+  (added without a scenario file) are excluded from the rendered scenarios.
 
 ## [0.2.0] - 2026-06-12
 

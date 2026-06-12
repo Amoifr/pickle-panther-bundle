@@ -49,19 +49,26 @@ final class HtmlReporter implements ReporterInterface
         $indexName = basename($file);
         $baseName = pathinfo($file, \PATHINFO_FILENAME);
 
+        // Keep only scenario steps. Test-level records (added by
+        // BasePantherTest::tearDown without a scenario file) are not real steps
+        // and would otherwise show up as a spurious "Non spécifié" file.
+        $results = array_values(array_filter(
+            self::$results,
+            static fn (StepResult $r): bool => null !== $r->scenarioFile,
+        ));
+
         // Group by scenario file then by scenario name.
         $grouped = [];
-        foreach (self::$results as $r) {
-            $scenarioFile = $r->scenarioFile ?? 'Non spécifié';
+        foreach ($results as $r) {
             $scenarioName = $r->scenarioName ?? 'Non spécifié';
 
-            $grouped[$scenarioFile][$scenarioName] ??= [
+            $grouped[$r->scenarioFile][$scenarioName] ??= [
                 'description' => $r->scenarioDescription ?? '',
                 'browser' => $r->browser,
                 'identity' => $r->identity,
                 'steps' => [],
             ];
-            $grouped[$scenarioFile][$scenarioName]['steps'][] = $r;
+            $grouped[$r->scenarioFile][$scenarioName]['steps'][] = $r;
         }
 
         // One entry per YAML file, with its own page and aggregated counters.
@@ -101,8 +108,8 @@ final class HtmlReporter implements ReporterInterface
         }
 
         // Home page.
-        $total = \count(self::$results);
-        $success = \count(array_filter(self::$results, static fn (StepResult $r) => $r->success));
+        $total = \count($results);
+        $success = \count(array_filter($results, static fn (StepResult $r) => $r->success));
         file_put_contents($file, self::renderIndexPage($files, $total, $success, $total - $success, $generatedAt));
 
         echo "\n📊 Rapport généré : $file (".\count($files)." fichier(s))\n";
