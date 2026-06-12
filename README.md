@@ -99,6 +99,7 @@ All keys are optional; defaults are shown.
 # config/packages/pickle_panther.yaml  (test environment)
 pickle_panther:
     locale: fr                         # default DSL language (fr|en) — matching is bilingual anyway
+    debug: false                       # true => screenshot after every step (= E2E_DEBUG=1)
     scenarios_dir: '%kernel.project_dir%/tests/E2E/Scenario'
     report:
         enabled: true
@@ -122,6 +123,51 @@ pickle_panther:
 ```
 
 Keep credentials out of the repository — read them from environment variables.
+
+> **Where to put the file.** If the bundle is only enabled in `dev`/`test`
+> (`config/bundles.php`), put the config under `config/packages/test/` (not the
+> root `config/packages/`): a root file is also loaded in `prod`, where the
+> bundle is absent, and Symfony would fail with *"no extension able to load
+> pickle_panther"*.
+
+### Real-world example
+
+A complete `config/packages/test/pickle_panther.yaml`, including registering
+project-specific sentence providers and a French-named role map:
+
+```yaml
+pickle_panther:
+    locale: fr
+    debug: false                       # true => a screenshot after every step
+    report:
+        enabled: true
+        # Under public/ so the web server serves it (e.g. /tests/report.html).
+        output_dir: '%kernel.project_dir%/public/tests'
+    browser:
+        headless: false                # headed (a display is available in CI/Docker)
+        chrome_args:
+            - '--disable-audio-output'
+            - '--disable-accelerated-video-decode'
+        desktop: { width: 1920, height: 1080 }
+        mobile:  { width: 375, height: 812, pixel_ratio: 3.0 }
+    auth:
+        login_path: /fr/login
+        logout_path: /fr/logout
+        form_selector: 'form[name="login_form"]'
+        email_field: 'login_form[email]'
+        password_field: 'login_form[plainPassword]'
+        roles:                         # keys are the scenario `identifié`/`identified` values
+            utilisateur: { email: '%env(E2E_USER_EMAIL)%',  password: '%env(E2E_USER_PASSWORD)%' }
+            admin:       { email: '%env(E2E_ADMIN_EMAIL)%', password: '%env(E2E_ADMIN_PASSWORD)%' }
+
+# Project-specific sentence providers (test namespace) are auto-tagged.
+services:
+    App\Tests\E2E\Sentence\:
+        resource: '%kernel.project_dir%/tests/E2E/Sentence/'
+        autowire: true
+        autoconfigure: true
+        public: true
+```
 
 ## Writing scenarios
 
@@ -234,10 +280,18 @@ A scenario then requests a logged-in context:
 
 ## The HTML report
 
-After the suite finishes, `HtmlReportExtension` writes
-`<output_dir>/report.html`: scenarios grouped by file, every step with its
-status, timing, context badges (browser / identity) and screenshots. Run with
-`E2E_DEBUG=1` to also capture a screenshot on **every** step (not just failures).
+After the suite finishes, `HtmlReportExtension` writes a multi-page report next
+to `<output_dir>/report.html`:
+
+- **`report.html`** — a home page listing each scenario YAML file as a link,
+  with a status icon and per-file scenario/step counts.
+- **`report-N.html`** — one page per YAML file, containing all its scenarios and
+  steps (status, timing, context badges, screenshots), with a breadcrumb back to
+  the home page.
+
+Screenshots resolve relatively (`captures/…`), so serving the output directory
+(or opening `report.html`) is enough. Set `pickle_panther.debug: true` (or run
+with `E2E_DEBUG=1`) to capture a screenshot on **every** step, not just failures.
 
 <p align="center">
   <img src="assets/report-preview.png" width="720" alt="HTML report preview">
