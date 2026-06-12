@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-12
+
 ### Added
 - `pickle_panther.debug` config option (default `false`): when enabled, a
   screenshot is captured after every step, not only on failures. The
@@ -66,6 +68,7 @@ Symfony bundle.
   output, browser (headless, desktop/mobile viewports, Chrome args) and auth.
 - Demo test application with unit and functional (real browser) test suites.
 
-[Unreleased]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Amoifr/pickle-panther-bundle/releases/tag/v0.1.0
