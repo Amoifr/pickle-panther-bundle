@@ -36,6 +36,8 @@ final class PicklePantherConfig
         public readonly string $outputDir,
         public readonly array $browser,
         public readonly ?array $auth = null,
+        // When true, a screenshot is captured after every step (like E2E_DEBUG=1).
+        public readonly bool $debug = false,
     ) {
     }
 

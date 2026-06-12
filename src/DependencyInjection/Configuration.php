@@ -20,6 +20,10 @@ final class Configuration implements ConfigurationInterface
                 // declare its #[Sentence] pattern in several languages); this only
                 // sets a default used for documentation/report purposes.
                 ->enumNode('locale')->values(['fr', 'en'])->defaultValue('fr')->end()
+                // Debug mode: capture a screenshot after every step (not only on
+                // failures). Equivalent to the E2E_DEBUG=1 environment variable,
+                // which still works and forces it on regardless of this value.
+                ->booleanNode('debug')->defaultFalse()->end()
                 // Where project scenario YAML files live (informational; tests pass
                 // explicit paths to the runner).
                 ->scalarNode('scenarios_dir')

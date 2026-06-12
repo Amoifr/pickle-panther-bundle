@@ -38,6 +38,7 @@ final class PicklePantherExtension extends Extension
             '$outputDir' => $config['report']['output_dir'],
             '$browser' => $config['browser'],
             '$auth' => $config['auth'] ?? null,
+            '$debug' => $config['debug'],
         ]);
 
         // Register a generic form-login authenticator only when the project opted

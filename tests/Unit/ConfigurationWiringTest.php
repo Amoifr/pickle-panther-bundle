@@ -80,6 +80,17 @@ final class ConfigurationWiringTest extends TestCase
         self::assertInstanceOf(FormLoginAuthenticator::class, $authenticator);
     }
 
+    public function testDebugDefaultsToFalseAndCanBeEnabled(): void
+    {
+        $default = $this->compile([])->get(PicklePantherConfig::class);
+        self::assertInstanceOf(PicklePantherConfig::class, $default);
+        self::assertFalse($default->debug);
+
+        $enabled = $this->compile(['debug' => true])->get(PicklePantherConfig::class);
+        self::assertInstanceOf(PicklePantherConfig::class, $enabled);
+        self::assertTrue($enabled->debug);
+    }
+
     private function dummyTestCase(): BasePantherTest
     {
         return new class('dummy') extends BasePantherTest {};

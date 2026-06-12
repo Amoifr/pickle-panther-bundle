@@ -188,7 +188,9 @@ final class ScenarioRunner
 
     private function isDebugMode(): bool
     {
-        return '1' === ($_ENV['E2E_DEBUG'] ?? getenv('E2E_DEBUG'));
+        // Enabled by config (pickle_panther.debug) or forced on by the
+        // E2E_DEBUG=1 environment variable (handy for a one-off run).
+        return $this->config->debug || '1' === ($_ENV['E2E_DEBUG'] ?? getenv('E2E_DEBUG'));
     }
 
     private function takeScreenshot(string $stepName, string $type): ?string

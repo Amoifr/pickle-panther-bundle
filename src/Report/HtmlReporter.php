@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Amoifr\PicklePantherBundle\Report;
 
 /**
- * Collects step results during the run and renders a standalone HTML report.
+ * Collects step results during the run and renders a multi-page HTML report:
+ * a home page ({@see generateReport}'s target file) listing every scenario as a
+ * link, and one dedicated page per scenario (with a breadcrumb back home).
  *
  * Results are accumulated in a static buffer because the PHPUnit extension that
  * flushes the report ({@see HtmlReportExtension}) runs in a different object
@@ -44,6 +46,9 @@ final class HtmlReporter implements ReporterInterface
             mkdir($dir, 0777, true);
         }
 
+        $indexName = basename($file);
+        $baseName = pathinfo($file, \PATHINFO_FILENAME);
+
         // Group by scenario file then by scenario name.
         $grouped = [];
         foreach (self::$results as $r) {
@@ -59,83 +64,194 @@ final class HtmlReporter implements ReporterInterface
             $grouped[$scenarioFile][$scenarioName]['steps'][] = $r;
         }
 
-        $success = \count(array_filter(self::$results, static fn (StepResult $r) => $r->success));
-        $total = \count(self::$results);
-        $fails = $total - $success;
+        // One entry per YAML file, with its own page and aggregated counters.
+        $files = [];
+        $index = 0;
+        foreach ($grouped as $scenarioFile => $scenariosInFile) {
+            ++$index;
+            $total = 0;
+            $pass = 0;
+            foreach ($scenariosInFile as $data) {
+                foreach ($data['steps'] as $r) {
+                    ++$total;
+                    if ($r->success) {
+                        ++$pass;
+                    }
+                }
+            }
+            $files[] = [
+                'file' => (string) $scenarioFile,
+                'scenarios' => $scenariosInFile,
+                'page' => $baseName.'-'.$index.'.html',
+                'pass' => $pass,
+                'fail' => $total - $pass,
+                'total' => $total,
+                'scenarioCount' => \count($scenariosInFile),
+            ];
+        }
 
-        $html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Rapport E2E</title>';
+        $generatedAt = date('Y-m-d H:i:s');
+
+        // One page per YAML file (containing all its scenarios).
+        foreach ($files as $f) {
+            file_put_contents(
+                $dir.'/'.$f['page'],
+                self::renderFilePage($f, $indexName, $generatedAt),
+            );
+        }
+
+        // Home page.
+        $total = \count(self::$results);
+        $success = \count(array_filter(self::$results, static fn (StepResult $r) => $r->success));
+        file_put_contents($file, self::renderIndexPage($files, $total, $success, $total - $success, $generatedAt));
+
+        echo "\n📊 Rapport généré : $file (".\count($files)." fichier(s))\n";
+    }
+
+    /**
+     * @param list<array{file: string, scenarios: array<string, array{description: string, browser: ?string, identity: ?string, steps: list<StepResult>}>, page: string, pass: int, fail: int, total: int, scenarioCount: int}> $files
+     */
+    private static function renderIndexPage(array $files, int $total, int $success, int $fails, string $generatedAt): string
+    {
+        $body = self::pageHeader(
+            '<i class="fas fa-chart-bar"></i>Rapport des tests E2E',
+            self::BUNDLE_NAME.' — résultats détaillés des tests automatisés',
+            $generatedAt,
+        );
+
+        $scenarioCount = array_sum(array_map(static fn (array $f): int => $f['scenarioCount'], $files));
+
+        $body .= '<div class="summary"><div class="summary-stats">';
+        $body .= '<div class="stat-card total"><i class="fas fa-list"></i><div><div class="stat-label">Total</div>'.$total.' étape(s)</div></div>';
+        $body .= '<div class="stat-card success-stat"><i class="fas fa-check-circle"></i><div><div class="stat-label">Réussies</div>'.$success.'</div></div>';
+        $body .= '<div class="stat-card fail-stat"><i class="fas fa-times-circle"></i><div><div class="stat-label">Échecs</div>'.$fails.'</div></div>';
+        $body .= '<div class="stat-card scenario-stat"><i class="fas fa-play-circle"></i><div><div class="stat-label">Scénarios</div>'.$scenarioCount.'</div></div>';
+        $body .= '</div></div>';
+
+        // One link per YAML file, leading to its dedicated page.
+        $body .= '<div class="yaml-file"><div class="yaml-file-header"><i class="fas fa-folder-open"></i> Fichiers de scénarios</div>';
+        $body .= '<div class="scenario-links">';
+        foreach ($files as $f) {
+            $ok = 0 === $f['fail'];
+            $statusClass = $ok ? 'success' : 'fail';
+            $statusIcon = $ok ? 'fa-check-circle' : 'fa-times-circle';
+
+            $body .= '<a class="scenario-link" href="'.htmlspecialchars($f['page']).'">';
+            $body .= '<span class="scenario-link-status '.$statusClass.'"><i class="fas '.$statusIcon.'"></i></span>';
+            $body .= '<span class="scenario-link-body">';
+            $body .= '<span class="scenario-link-name"><i class="fas fa-file-code"></i> '.htmlspecialchars($f['file']).'</span>';
+            $body .= '</span>';
+            $body .= '<span class="scenario-link-stats">'.$f['scenarioCount'].' scénario(s) · '.$f['pass'].'/'.$f['total'].' OK</span>';
+            $body .= '<span class="scenario-link-arrow"><i class="fas fa-chevron-right"></i></span>';
+            $body .= '</a>';
+        }
+        $body .= '</div></div>';
+
+        return self::page('Rapport E2E', $body);
+    }
+
+    /**
+     * @param array{file: string, scenarios: array<string, array{description: string, browser: ?string, identity: ?string, steps: list<StepResult>}>, page: string, pass: int, fail: int, total: int, scenarioCount: int} $f
+     */
+    private static function renderFilePage(array $f, string $indexName, string $generatedAt): string
+    {
+        $body = '<nav class="breadcrumb">';
+        $body .= '<a href="'.htmlspecialchars($indexName).'"><i class="fas fa-home"></i> Accueil</a>';
+        $body .= '<i class="fas fa-chevron-right breadcrumb-sep"></i>';
+        $body .= '<span class="breadcrumb-current">'.htmlspecialchars($f['file']).'</span>';
+        $body .= '</nav>';
+
+        $body .= self::pageHeader(
+            '<i class="fas fa-file-code"></i>'.htmlspecialchars($f['file']),
+            $f['scenarioCount'].' scénario(s) · '.$f['pass'].'/'.$f['total'].' étape(s) réussie(s)',
+            $generatedAt,
+        );
+
+        foreach ($f['scenarios'] as $scenarioName => $data) {
+            $body .= self::renderScenarioBlock((string) $scenarioName, $data);
+        }
+
+        $body .= '<div class="back-home"><a href="'.htmlspecialchars($indexName).'"><i class="fas fa-arrow-left"></i> Retour à l\'accueil</a></div>';
+
+        return self::page($f['file'].' — Rapport E2E', $body);
+    }
+
+    /**
+     * @param array{description: string, browser: ?string, identity: ?string, steps: list<StepResult>} $data
+     */
+    private static function renderScenarioBlock(string $scenarioName, array $data): string
+    {
+        $html = '<div class="scenario"><div class="scenario-header">';
+        $html .= '<div class="scenario-name"><i class="fas fa-play-circle"></i>'.htmlspecialchars($scenarioName).'</div>';
+        if ('' !== $data['description']) {
+            $html .= '<div class="scenario-description">'.htmlspecialchars($data['description']).'</div>';
+        }
+        $html .= self::contextBadges($data['browser'], $data['identity']);
+        $html .= '</div>';
+
+        $html .= '<table class="step-table"><thead><tr>';
+        $html .= '<th style="width: 40%"><i class="fas fa-cog"></i> Action</th>';
+        $html .= '<th style="width: 15%"><i class="fas fa-flag"></i> Résultat</th>';
+        $html .= '<th style="width: 20%"><i class="fas fa-clock"></i> Heure</th>';
+        $html .= '<th style="width: 25%"><i class="fas fa-camera"></i> Capture</th>';
+        $html .= '</tr></thead><tbody>';
+
+        $stepNumber = 1;
+        foreach ($data['steps'] as $r) {
+            $html .= self::renderRow($r, $stepNumber);
+            ++$stepNumber;
+        }
+        $html .= '</tbody></table></div>';
+
+        return $html;
+    }
+
+    private static function page(string $title, string $bodyInner): string
+    {
+        $html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>'.htmlspecialchars($title).'</title>';
         $html .= '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">';
         $html .= '<style>'.self::css().'</style>';
         $html .= '</head><body><div class="container">';
-        $html .= '<div class="page-header">';
-        $html .= '<div class="page-header-main">';
+        $html .= $bodyInner;
+        $html .= self::footer();
+        $html .= '</div>'.self::script().'</body></html>';
+
+        return $html;
+    }
+
+    private static function pageHeader(string $titleHtml, string $subtitle, string $generatedAt): string
+    {
+        $html = '<div class="page-header"><div class="page-header-main">';
         if (null !== ($logo = self::logoDataUri())) {
             $html .= '<img class="brand-logo" src="'.$logo.'" alt="'.self::BUNDLE_NAME.'">';
         }
         $html .= '<div>';
-        $html .= '<h1><i class="fas fa-chart-bar"></i>Rapport des tests E2E</h1>';
-        $html .= '<div class="subtitle"><i class="fas fa-info-circle"></i>'.self::BUNDLE_NAME.' — résultats détaillés des tests automatisés</div>';
-        $html .= '<p style="margin: 0;"><i class="fas fa-clock"></i> <strong>Généré le:</strong> '.date('Y-m-d H:i:s').' (heure de Paris)</p>';
+        $html .= '<h1>'.$titleHtml.'</h1>';
+        $html .= '<div class="subtitle"><i class="fas fa-info-circle"></i>'.$subtitle.'</div>';
+        $html .= '<p style="margin: 0;"><i class="fas fa-clock"></i> <strong>Généré le:</strong> '.$generatedAt.' (heure de Paris)</p>';
         $html .= '</div></div></div>';
 
-        $html .= '<div class="summary"><div class="summary-stats">';
-        $html .= '<div class="stat-card total"><i class="fas fa-list"></i><div><div style="font-size: 0.85rem; opacity: 0.8;">Total</div>'.$total.' étape(s)</div></div>';
-        $html .= '<div class="stat-card success-stat"><i class="fas fa-check-circle"></i><div><div style="font-size: 0.85rem; opacity: 0.8;">Réussies</div>'.$success.'</div></div>';
-        $html .= '<div class="stat-card fail-stat"><i class="fas fa-times-circle"></i><div><div style="font-size: 0.85rem; opacity: 0.8;">Échecs</div>'.$fails.'</div></div>';
-        $html .= '</div></div>';
+        return $html;
+    }
 
-        foreach ($grouped as $scenarioFile => $scenarios) {
-            $html .= '<div class="yaml-file">';
-            $html .= '<div class="yaml-file-header"><i class="fas fa-file-code"></i>'.htmlspecialchars((string) $scenarioFile).'</div>';
-
-            foreach ($scenarios as $scenarioName => $scenarioData) {
-                $html .= '<div class="scenario"><div class="scenario-header">';
-                $html .= '<div class="scenario-name"><i class="fas fa-play-circle"></i>'.htmlspecialchars((string) $scenarioName).'</div>';
-                if (!empty($scenarioData['description'])) {
-                    $html .= '<div class="scenario-description">'.htmlspecialchars($scenarioData['description']).'</div>';
-                }
-
-                if (!empty($scenarioData['browser']) || !empty($scenarioData['identity'])) {
-                    $html .= '<div class="context-badges">';
-                    if (!empty($scenarioData['browser'])) {
-                        $browser = (string) $scenarioData['browser'];
-                        $icon = 'mobile' === $browser ? 'fa-mobile-alt' : 'fa-desktop';
-                        $html .= '<span class="context-badge navigateur-'.htmlspecialchars($browser).'"><i class="fas '.$icon.'"></i>'.ucfirst(htmlspecialchars($browser)).'</span>';
-                    }
-                    if (!empty($scenarioData['identity'])) {
-                        $identity = (string) $scenarioData['identity'];
-                        $icon = 'admin' === $identity ? 'fa-user-shield' : 'fa-user';
-                        $html .= '<span class="context-badge identifie-'.htmlspecialchars($identity).'"><i class="fas '.$icon.'"></i>'.ucfirst(htmlspecialchars($identity)).'</span>';
-                    }
-                    $html .= '</div>';
-                }
-                $html .= '</div>';
-
-                $html .= '<table class="step-table"><thead><tr>';
-                $html .= '<th style="width: 40%"><i class="fas fa-cog"></i> Action</th>';
-                $html .= '<th style="width: 15%"><i class="fas fa-flag"></i> Résultat</th>';
-                $html .= '<th style="width: 20%"><i class="fas fa-clock"></i> Heure</th>';
-                $html .= '<th style="width: 25%"><i class="fas fa-camera"></i> Capture</th>';
-                $html .= '</tr></thead><tbody>';
-
-                $stepNumber = 1;
-                foreach ($scenarioData['steps'] as $r) {
-                    /** @var StepResult $r */
-                    $html .= self::renderRow($r, $stepNumber);
-                    ++$stepNumber;
-                }
-
-                $html .= '</tbody></table></div>';
-            }
-
-            $html .= '</div>';
+    private static function contextBadges(?string $browser, ?string $identity): string
+    {
+        if (empty($browser) && empty($identity)) {
+            return '';
         }
 
-        $html .= self::footer();
-        $html .= '</div>'.self::script().'</body></html>';
-        file_put_contents($file, $html);
+        $html = '<div class="context-badges">';
+        if (!empty($browser)) {
+            $icon = 'mobile' === $browser ? 'fa-mobile-alt' : 'fa-desktop';
+            $html .= '<span class="context-badge navigateur-'.htmlspecialchars($browser).'"><i class="fas '.$icon.'"></i>'.ucfirst(htmlspecialchars($browser)).'</span>';
+        }
+        if (!empty($identity)) {
+            $icon = 'admin' === $identity ? 'fa-user-shield' : 'fa-user';
+            $html .= '<span class="context-badge identifie-'.htmlspecialchars($identity).'"><i class="fas '.$icon.'"></i>'.ucfirst(htmlspecialchars($identity)).'</span>';
+        }
+        $html .= '</div>';
 
-        echo "\n📊 Rapport généré : $file\n";
+        return $html;
     }
 
     private static function renderRow(StepResult $r, int $stepNumber): string
@@ -229,6 +345,25 @@ final class HtmlReporter implements ReporterInterface
             .page-header .subtitle { color: #6c757d; font-size: 0.95rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
             .page-header-main { display: flex; align-items: center; gap: 1.5rem; }
             .brand-logo { width: 96px; height: 96px; flex-shrink: 0; }
+            .stat-label { font-size: 0.85rem; opacity: 0.8; }
+            .breadcrumb { background: white; padding: 0.85rem 1.25rem; border-radius: 8px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem; }
+            .breadcrumb a { color: #667eea; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; }
+            .breadcrumb a:hover { text-decoration: underline; }
+            .breadcrumb-sep { color: #adb5bd; font-size: 0.7rem; }
+            .breadcrumb-current { color: #6c757d; }
+            .scenario-links { padding: 1rem 1.5rem 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
+            .scenario-link { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: #f8f9fa; border: 1px solid #e9ecef; border-left: 4px solid #28a745; border-radius: 6px; text-decoration: none; color: inherit; transition: all 0.2s ease; }
+            .scenario-link:hover { background: #fff; transform: translateX(4px); box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1); }
+            .scenario-link-status { font-size: 1.4rem; flex-shrink: 0; }
+            .scenario-link-status.success { color: #28a745; }
+            .scenario-link-status.fail { color: #dc3545; }
+            .scenario-link-body { flex: 1; min-width: 0; }
+            .scenario-link-name { font-size: 1.1rem; font-weight: 600; color: #333; display: block; }
+            .scenario-link-stats { flex-shrink: 0; font-size: 0.9rem; font-weight: 600; color: #495057; background: #e9ecef; padding: 0.35rem 0.75rem; border-radius: 999px; }
+            .scenario-link-arrow { color: #adb5bd; flex-shrink: 0; }
+            .back-home { margin: 1.5rem 0; }
+            .back-home a { color: #667eea; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; }
+            .back-home a:hover { text-decoration: underline; }
             .report-footer { margin-top: 2rem; padding: 1.5rem 2rem; background: white; border-radius: 8px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); border-left: 4px solid #4f7d2e; display: flex; align-items: center; gap: 1rem; }
             .footer-logo { width: 56px; height: 56px; flex-shrink: 0; }
             .footer-name { color: #333; font-size: 1.05rem; }
@@ -242,6 +377,7 @@ final class HtmlReporter implements ReporterInterface
             .stat-card.total { background: #e7f1ff; color: #004085; }
             .stat-card.success-stat { background: #d4edda; color: #155724; }
             .stat-card.fail-stat { background: #f8d7da; color: #721c24; }
+            .stat-card.scenario-stat { background: #ede7f6; color: #4527a0; }
             .yaml-file { background: white; margin-bottom: 2rem; border-radius: 8px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); overflow: hidden; border-left: 4px solid #667eea; transition: all 0.3s ease; }
             .yaml-file:hover { transform: translateY(-2px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); }
             .yaml-file-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.25rem 1.5rem; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.75rem; }
@@ -250,8 +386,8 @@ final class HtmlReporter implements ReporterInterface
             .scenario-header { background: #e9ecef; padding: 1rem 1.25rem; border-bottom: 1px solid #dee2e6; }
             .scenario-name { font-size: 1.15rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 0.5rem; }
             .scenario-name i { color: #28a745; }
-            .scenario-description { font-size: 0.9rem; color: #6c757d; font-style: italic; margin-top: 0.5rem; padding-left: 1.75rem; }
-            .context-badges { display: flex; gap: 0.5rem; margin-top: 0.75rem; padding-left: 1.75rem; flex-wrap: wrap; }
+            .scenario-description { font-size: 0.9rem; color: #6c757d; font-style: italic; margin-top: 0.5rem; }
+            .context-badges { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
             .context-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 500; background: #fff; border: 1px solid #dee2e6; }
             .context-badge i { font-size: 0.9rem; }
             .context-badge.navigateur-mobile { background: #fff3cd; border-color: #ffc107; color: #856404; }

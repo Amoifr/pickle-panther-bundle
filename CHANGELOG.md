@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `pickle_panther.debug` config option (default `false`): when enabled, a
+  screenshot is captured after every step, not only on failures. The
+  `E2E_DEBUG=1` environment variable still works and forces it on.
+
+### Changed
+- HTML report is now multi-page: `report.html` is a home page listing each YAML
+  scenario file as a link (with a status icon and per-file scenario/step
+  counts), and every file gets its own page (`report-N.html`) — containing all
+  its scenarios and steps — with a breadcrumb back to the home page. Captures
+  still resolve relatively next to the report.
+
 ## [0.2.0] - 2026-06-12
 
 ### Added
