@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its scenarios and steps — with a breadcrumb back to the home page. Captures
   still resolve relatively next to the report.
 
+### Fixed
+- Screenshots are now cleared once at the start of the run (by
+  `HtmlReportExtension`) instead of in every test's `setUp`. Previously each test
+  class wiped the previous classes' captures, so the final report only kept the
+  last class's screenshots — most visible with `debug` enabled.
+
 ## [0.2.0] - 2026-06-12
 
 ### Added

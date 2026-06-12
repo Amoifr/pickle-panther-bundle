@@ -50,11 +50,10 @@ abstract class BasePantherTest extends PantherTestCase
         $this->client->manage()->window()->setSize($this->desktopDimension());
         $this->currentViewMode = 'desktop';
 
-        // Clear screenshots from a previous run.
-        $files = glob($capturesDir.'/*.png') ?: [];
-        foreach ($files as $f) {
-            @unlink($f);
-        }
+        // Note: stale screenshots are cleared once at the start of the run by
+        // HtmlReportExtension, NOT here — otherwise each test class would wipe the
+        // screenshots of the previous ones and the final report (written once, at
+        // the end) would only show the last class's captures.
     }
 
     protected function tearDown(): void

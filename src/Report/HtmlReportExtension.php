@@ -34,6 +34,15 @@ final class HtmlReportExtension implements Extension
 
         $reportFile = rtrim((string) $outputDir, '/').'/report.html';
 
+        // Clear stale screenshots once, before the suite runs (BasePantherTest no
+        // longer clears them per test, which would wipe earlier classes' captures).
+        $capturesDir = rtrim((string) $outputDir, '/').'/captures';
+        if (is_dir($capturesDir)) {
+            foreach (glob($capturesDir.'/*.png') ?: [] as $f) {
+                @unlink($f);
+            }
+        }
+
         $facade->registerSubscriber(new class($reportFile) implements FinishedSubscriber {
             public function __construct(private readonly string $reportFile)
             {
