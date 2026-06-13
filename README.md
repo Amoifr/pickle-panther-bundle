@@ -60,13 +60,48 @@ return [
 ];
 ```
 
-You also need a Chrome/Chromium browser and a **matching** `chromedriver`. The
-easiest way is:
+### Browser & driver (required, on the machine that runs the tests)
+
+PicklePanther drives a **real, local browser** through Symfony Panther — there is
+no remote/Selenium mode. Two binaries must therefore be present **on the same
+machine/container where PHPUnit runs**:
+
+1. **Chrome or Chromium** — the actual browser that gets launched.
+2. **`chromedriver`** — the WebDriver server Panther talks to.
+
+**Their major versions must match** (e.g. Chrome `149.x` ↔ chromedriver `149.x`).
+A mismatch makes the browser session fail to start (`session not created: This
+version of ChromeDriver only supports Chrome version N`).
+
+Install a matching `chromedriver` the easy way — it lands in `./drivers/`, which
+Panther auto-detects (it searches `./drivers` and `./vendor/bin`):
 
 ```bash
 composer require --dev dbrekelmans/bdi
-vendor/bin/bdi detect drivers     # downloads chromedriver into ./drivers
+vendor/bin/bdi detect drivers
 ```
+
+Or point to an existing binary explicitly:
+
+```dotenv
+# .env.test (or .env.test.local)
+PANTHER_CHROME_DRIVER_BINARY=drivers/chromedriver
+```
+
+> **Docker / where the browser must live.** Because the browser is launched
+> *locally* by the test process, it must be reachable from wherever PHPUnit runs:
+> - PHPUnit **inside a container** → install Chrome **and** chromedriver **in that
+>   container** (a browser on the host is not usable from inside the container).
+> - PHPUnit **on the host** → install them on the host. To still exercise an app
+>   served elsewhere (e.g. a Dockerised app on `https://localhost:444`), point the
+>   tests at it with `PANTHER_EXTERNAL_BASE_URI` instead of letting Panther start
+>   its own web server.
+
+> **HTTPS target with a self-signed certificate.** Pass the flag through
+> `PANTHER_CHROME_ARGUMENTS` (read by Panther's `ChromeManager`), e.g.
+> `PANTHER_CHROME_ARGUMENTS=--ignore-certificate-errors`. Chrome arguments set
+> only via PHPUnit/bundle *capabilities* are **not** forwarded to the launched
+> browser, so the certificate prompt would otherwise block the page.
 
 ### PHPUnit configuration
 
@@ -301,7 +336,8 @@ with `E2E_DEBUG=1`) to capture a screenshot on **every** step, not just failures
 
 - PHP `>= 8.2`
 - Symfony `^7.1 || ^8.0`
-- Chrome/Chromium + a matching `chromedriver`
+- Chrome/Chromium **and** a version-matched `chromedriver`, both installed on the
+  machine/container that runs the tests (see [Browser & driver](#browser--driver-required-on-the-machine-that-runs-the-tests)).
 
 ## Author
 

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-06-13
+
+### Documentation
+- README: dedicated "Browser & driver" section clarifying that a local
+  Chrome/Chromium **and** a version-matched `chromedriver` must be installed on
+  the machine/container running the tests (no remote/Selenium mode), how Panther
+  auto-detects `./drivers`, the Docker host-vs-container implication, and the
+  `PANTHER_CHROME_ARGUMENTS=--ignore-certificate-errors` workaround for HTTPS
+  targets with a self-signed certificate.
+
 ## [0.3.0] - 2026-06-12
 
 ### Added
@@ -68,7 +78,8 @@ Symfony bundle.
   output, browser (headless, desktop/mobile viewports, Chrome args) and auth.
 - Demo test application with unit and functional (real browser) test suites.
 
-[Unreleased]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Amoifr/pickle-panther-bundle/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Amoifr/pickle-panther-bundle/releases/tag/v0.1.0
